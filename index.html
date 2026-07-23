@@ -534,7 +534,7 @@ function addWatch(id,h){if(!id||h<=0)return;const iso=toISO(today0());if(!state.
 function commitWatch(){if(ytUncommitted>0&&ytCurBook)addWatch(ytCurBook,ytUncommitted/3600);ytUncommitted=0;}
 function updateYtStatus(){const el=$('#ytStatus');if(!el)return;const sel=(($('#ytSel')||{}).value)||'';const name=sel?((state.tasks.find(t=>t.id===sel)||{}).name||''):'';const tot=Math.floor(ytSession),m=Math.floor(tot/60),s=tot%60;
   if(!sel){el.className='yt-status warn2';el.innerHTML='上で参考書を選ぶと、視聴した時間がその参考書に記録されます。';return;}
-  el.className='yt-status';var th=loggedOn(toISO(today0()),sel);el.innerHTML=(ytPlaying?'▶ 再生中':'⏸ 停止中')+'：<b>'+esc(name)+'</b> に加算中<br>今回の視聴 <b>'+m+'分'+String(s).padStart(2,'0')+'秒</b>　／　今日この本に <b>'+Math.round(th*60)+'分</b>';}
+  el.className='yt-status';var th=loggedOn(toISO(today0()),sel);var eng=engBeat>0?'計測エンジン ✓':'計測エンジン 停止中 ✕';el.innerHTML=(ytPlaying?'▶ 再生中':'⏸ 停止中')+'：<b>'+esc(name)+'</b> に加算中<br>今日この本に <b>'+Math.floor(th*60)+'分'+String(Math.floor(th*3600)%60).padStart(2,'0')+'秒</b><br><span style="font-weight:500;font-size:11.5px;color:#64748b">このタブを開いてから '+m+'分'+String(s).padStart(2,'0')+'秒 ・ '+eng+'</span>';}
 function fillYtSelect(){const sel=$('#ytSel');if(!sel)return;const cur=sel.value||state.ui.book||'';const opts=state.tasks.filter(t=>remaining(t)>0);
   sel.innerHTML='<option value="">— 参考書を選ぶ —</option>'+opts.map(t=>'<option value="'+t.id+'">'+esc(t.subject+'／'+t.name)+'</option>').join('');
   if(cur&&opts.some(t=>t.id===cur)){sel.value=cur;ytCurBook=cur;}updateYtStatus();}
@@ -603,8 +603,9 @@ function importData(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{c
 
 function initDates(){const T=today0();$('#afStart').value=toISO(T);$('#afStart').min=toISO(T);$('#afDue').value=toISO(addDays(T,14));$('#afDue').min=toISO(T);}
 initDates();$('#hprInput').value=af.hpr;$('#afRounds').value=af.rounds;
-renderAll();updatePreview();
-showTab('pane-focus');loadYT();
+try{renderAll();updatePreview();}catch(e){}
+try{showTab('pane-focus');}catch(e){}
+try{loadYT();}catch(e){}
 if(loadWarn){const hd=document.querySelector('header');if(hd){const w=document.createElement('div');w.className='load-warn';w.textContent=loadWarn;hd.appendChild(w);}}
 function adoptIfNewer(){if(ytPlaying)return false;var p=parseOK(lsGet(KEY));if(!p)return false;if((+p.updatedAt||0)<=(+state.updatedAt||0))return false;state=hydrate(p);renderAll();updatePreview();return true;}
 window.addEventListener('storage',function(e){if(e.key===KEY)adoptIfNewer();});
@@ -613,8 +614,11 @@ window.addEventListener('pagehide',flushAll);
 window.addEventListener('beforeunload',flushAll);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushAll();}else{tickWatch();adoptIfNewer();}});
 window.addEventListener('focus',()=>{tickWatch();adoptIfNewer();});
+window.addEventListener('pageshow',()=>{tickWatch();adoptIfNewer();});
+document.addEventListener('resume',()=>{tickWatch();adoptIfNewer();});
+document.addEventListener('freeze',()=>{try{tickWatch();flushAll();}catch(e){}});
 function liveRefresh(){var ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;var act=(document.querySelector('section.active')||{}).id;renderVerdict();if(act==='pane-today')renderToday();else if(act==='pane-cal')renderCalendar();else if(act==='pane-stats')renderStats();}
-let lastTick=0,lastCT=null;
+let lastTick=0,lastCT=null,engBeat=0;
 function ytTime(){try{return (ytPlayer&&ytPlayer.getCurrentTime)?ytPlayer.getCurrentTime():null;}catch(e){return null;}}
 function silence(on){var a=document.getElementById('silence');if(!a)return;try{if(on){var pr=a.play();if(pr&&pr.catch)pr.catch(function(){});}else a.pause();}catch(e){}}
 function tickWatch(){var st=-99;try{if(ytPlayer&&ytPlayer.getPlayerState)st=ytPlayer.getPlayerState();}catch(e){}
@@ -626,10 +630,10 @@ function tickWatch(){var st=-99;try{if(ytPlayer&&ytPlayer.getPlayerState)st=ytPl
   var vid=(lastCT!=null&&ct!=null)?(ct-lastCT):wall;
   var add=Math.min(wall,vid);
   lastTick=now;lastCT=ct;
-  if(add>0&&add<600){ytUncommitted+=add;ytSession+=add;commitWatch();}
+  if(add>0){if(add>14400)add=14400;ytUncommitted+=add;ytSession+=add;commitWatch();}
   liveRefresh();}
  updateYtStatus();}
-setInterval(tickWatch,1000);
+setInterval(function(){engBeat++;try{tickWatch();}catch(e){}},1000);
 
 </script>
 </body>
