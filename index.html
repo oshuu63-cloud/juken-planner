@@ -531,7 +531,7 @@ function addWatch(id,h){if(!id||h<=0)return;const iso=toISO(today0());if(!state.
 function commitWatch(){if(ytUncommitted>0&&ytCurBook)addWatch(ytCurBook,ytUncommitted/3600);ytUncommitted=0;}
 function updateYtStatus(){const el=$('#ytStatus');if(!el)return;const sel=(($('#ytSel')||{}).value)||'';const name=sel?((state.tasks.find(t=>t.id===sel)||{}).name||''):'';const m=Math.floor(ytSession/60),s=ytSession%60;
   if(!sel){el.className='yt-status warn2';el.innerHTML='上で参考書を選ぶと、視聴した時間がその参考書に記録されます。';return;}
-  el.className='yt-status';el.innerHTML=(ytPlaying?'▶ 再生中':'⏸ 停止中')+'：<b>'+esc(name)+'</b> に加算中<br>今回の視聴 <b>'+m+'分'+String(s).padStart(2,'0')+'秒</b>';}
+  el.className='yt-status';var th=loggedOn(toISO(today0()),sel);el.innerHTML=(ytPlaying?'▶ 再生中':'⏸ 停止中')+'：<b>'+esc(name)+'</b> に加算中<br>今回の視聴 <b>'+m+'分'+String(s).padStart(2,'0')+'秒</b>　／　今日この本に <b>'+Math.round(th*60)+'分</b>';}
 function fillYtSelect(){const sel=$('#ytSel');if(!sel)return;const cur=sel.value||state.ui.book||'';const opts=state.tasks.filter(t=>remaining(t)>0);
   sel.innerHTML='<option value="">— 参考書を選ぶ —</option>'+opts.map(t=>'<option value="'+t.id+'">'+esc(t.subject+'／'+t.name)+'</option>').join('');
   if(cur&&opts.some(t=>t.id===cur)){sel.value=cur;ytCurBook=cur;}updateYtStatus();}
@@ -601,15 +601,21 @@ function importData(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{c
 function initDates(){const T=today0();$('#afStart').value=toISO(T);$('#afStart').min=toISO(T);$('#afDue').value=toISO(addDays(T,14));$('#afDue').min=toISO(T);}
 initDates();$('#hprInput').value=af.hpr;$('#afRounds').value=af.rounds;
 renderAll();updatePreview();
-showTab(state.ui.tab||'pane-focus');
+showTab('pane-focus');loadYT();
 if(loadWarn){const hd=document.querySelector('header');if(hd){const w=document.createElement('div');w.className='load-warn';w.textContent=loadWarn;hd.appendChild(w);}}
 function flushAll(){try{commitWatch();save();}catch(e){}}
 window.addEventListener('pagehide',flushAll);
 window.addEventListener('beforeunload',flushAll);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushAll();});
 function liveRefresh(){var ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;var act=(document.querySelector('section.active')||{}).id;renderVerdict();if(act==='pane-today')renderToday();else if(act==='pane-cal')renderCalendar();else if(act==='pane-stats')renderStats();}
-setInterval(()=>{if(ytPlaying){ytUncommitted++;ytSession++;commitWatch();updateYtStatus();liveRefresh();}},1000);
+setInterval(()=>{var st=-99;try{if(ytPlayer&&ytPlayer.getPlayerState)st=ytPlayer.getPlayerState();}catch(e){}
+ var playing=(st===1);
+ if(playing&&!ytCurBook){var sv=($('#ytSel')||{}).value||'';if(sv)ytCurBook=sv;}
+ if(playing!==ytPlaying){if(!playing)commitWatch();ytPlaying=playing;}
+ if(playing){ytUncommitted++;ytSession++;commitWatch();liveRefresh();}
+ updateYtStatus();},1000);
 
 </script>
 </body>
 </html>
+
