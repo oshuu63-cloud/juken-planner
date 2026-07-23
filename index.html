@@ -6,9 +6,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="受験計画">
 <meta name="theme-color" content="#4f46e5">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="./icons/icon-192.png">
 <title>受験 計画メーカー</title>
 <style>
   :root{
@@ -439,7 +436,7 @@ function todayAlloc(){const T=today0(),iso=toISO(T),cap=availDay(T);const list=s
 let extDays={};
 function suggestDays(t){const rem=remaining(t);const avg=Math.max(0.5,(5*num(state.settings.wd)+2*num(state.settings.we))/7);return Math.max(1,Math.ceil(rem/avg));}
 function extendDue(id,days){const t=state.tasks.find(x=>x.id===id);if(!t)return;if(days==null)days=(extDays[id]!=null?extDays[id]:suggestDays(t));days=Math.max(1,Math.round(num(days))||1);t.start=toISO(today0());t.due=toISO(addDays(today0(),days));delete extDays[id];save();renderAll();}
-function setLog(iso,id,v){v=Math.max(0,Math.round(num(v)*4)/4);if(!state.log)state.log={};if(!state.log[iso])state.log[iso]={};if(v<=0)delete state.log[iso][id];else state.log[iso][id]=v;if(Object.keys(state.log[iso]).length===0)delete state.log[iso];save();}
+function setLog(iso,id,v){v=Math.max(0,Math.round(num(v)*100)/100);if(!state.log)state.log={};if(!state.log[iso])state.log[iso]={};if(v<=0)delete state.log[iso][id];else state.log[iso][id]=v;if(Object.keys(state.log[iso]).length===0)delete state.log[iso];save();}
 function logRow(iso,t,target,raw,isTodayRow){const logged=loggedOn(iso,t.id),total=totalH(t),rem=remaining(t),ratio=total>0?Math.min(1,(total-rem)/total):0,base=dayShare(t,parseD(iso)||today0());
   const r=rawRange(t),overdue=(parseD(iso)&&r.e<parseD(iso)&&rem>0);
   const stuck=!!isTodayRow&&((raw>target+0.05)||overdue);
@@ -454,7 +451,7 @@ function logRow(iso,t,target,raw,isTodayRow){const logged=loggedOn(iso,t.id),tot
     +'<div class="lr-top"><div class="lr-nm">'+esc(t.name)+'</div>'+(met?'<div class="lr-badge">✓</div>':'')+'</div>'
     +'<div class="lr-sub">'+t.subject+' ・ 締切 '+fmtMD(r.e)+(overdue?' <span class="over">超過</span>':'')+'</div>'
     +'<div class="lr-mid"><span class="lr-tag">目標 <b>'+fmtH(target)+'</b></span>'+tag
-      +'<div class="stepper sm"><button data-log="'+iso+'|'+t.id+'" data-d="-0.5">−</button><input class="lr-in" data-logv="'+iso+'|'+t.id+'" inputmode="decimal" value="'+(logged||'')+'" placeholder="0"><button data-log="'+iso+'|'+t.id+'" data-d="0.5">+</button></div><span class="lr-unit">h やった</span></div>'
+      +'<div class="stepper sm"><button data-log="'+iso+'|'+t.id+'" data-d="-0.5">−</button><input class="lr-in" data-logv="'+iso+'|'+t.id+'" inputmode="decimal" value="'+(logged?Math.round(logged*100)/100:'')+'" placeholder="0"><button data-log="'+iso+'|'+t.id+'" data-d="0.5">+</button></div><span class="lr-unit">h やった</span></div>'
     +ext
     +'<div class="lr-bar"><div style="width:'+(ratio*100)+'%;background:'+SUBJ[t.subject]+'"></div></div>'
     +'<div class="lr-foot">実績 '+fmtH(loggedTotal(t.id))+' / '+fmtH(total)+(loggedTotal(t.id)>total+0.05?'（+'+fmtH(loggedTotal(t.id)-total)+'）':'')+' ・ 残り '+fmtH(rem)+'</div></div>';}
@@ -530,7 +527,7 @@ let ytPlayer=null,ytPlaying=false,ytUncommitted=0,ytSession=0,ytCurBook='';
 function loadYT(){if(ytPlayer)return;if(window.YT&&window.YT.Player){initYT();return;}if(!document.getElementById('yt-api')){var s=document.createElement('script');s.id='yt-api';s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}window.onYouTubeIframeAPIReady=initYT;}
 function initYT(){if(ytPlayer||!document.getElementById('ytHost')||!(window.YT&&window.YT.Player))return;ytPlayer=new YT.Player('ytHost',{width:'100%',height:'100%',videoId:YT_VIDEO,playerVars:{rel:0,modestbranding:1,playsinline:1,iv_load_policy:3},events:{onStateChange:onYtState}});}
 function onYtState(e){if(e.data===1){ytCurBook=(($('#ytSel')||{}).value)||'';ytPlaying=true;}else{commitWatch();ytPlaying=false;}updateYtStatus();}
-function addWatch(id,h){if(!id||h<=0)return;const iso=toISO(today0());if(!state.log)state.log={};if(!state.log[iso])state.log[iso]={};state.log[iso][id]=Math.round(((state.log[iso][id]||0)+h)*1000)/1000;save();}
+function addWatch(id,h){if(!id||h<=0)return;const iso=toISO(today0());if(!state.log)state.log={};if(!state.log[iso])state.log[iso]={};state.log[iso][id]=Math.round(((state.log[iso][id]||0)+h)*1e6)/1e6;save();}
 function commitWatch(){if(ytUncommitted>0&&ytCurBook)addWatch(ytCurBook,ytUncommitted/3600);ytUncommitted=0;}
 function updateYtStatus(){const el=$('#ytStatus');if(!el)return;const sel=(($('#ytSel')||{}).value)||'';const name=sel?((state.tasks.find(t=>t.id===sel)||{}).name||''):'';const m=Math.floor(ytSession/60),s=ytSession%60;
   if(!sel){el.className='yt-status warn2';el.innerHTML='上で参考書を選ぶと、視聴した時間がその参考書に記録されます。';return;}
@@ -610,9 +607,9 @@ function flushAll(){try{commitWatch();save();}catch(e){}}
 window.addEventListener('pagehide',flushAll);
 window.addEventListener('beforeunload',flushAll);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushAll();});
-setInterval(()=>{if(ytPlaying){ytUncommitted++;ytSession++;if(ytUncommitted>=3)commitWatch();updateYtStatus();}},1000);
+function liveRefresh(){var ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;var act=(document.querySelector('section.active')||{}).id;renderVerdict();if(act==='pane-today')renderToday();else if(act==='pane-cal')renderCalendar();else if(act==='pane-stats')renderStats();}
+setInterval(()=>{if(ytPlaying){ytUncommitted++;ytSession++;commitWatch();updateYtStatus();liveRefresh();}},1000);
 
-if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}
 </script>
 </body>
 </html>
